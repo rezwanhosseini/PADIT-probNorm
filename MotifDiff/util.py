@@ -425,7 +425,7 @@ class MEME_probNorm():
                 background_prob = np.ones(4)/4
             else:
                 background_prob = self.background
-
+            print(text)
             # TODO:
             # change the conditions to be based on whether it's a single file or a directory including separate files per motif.
             # then define the conditions on the format of the file, whether they're frequency, count, probability or log-likelihood regardless of what the file name ends with
@@ -433,21 +433,31 @@ class MEME_probNorm():
                 print("motif is pfm or ppm format")
                 with open(text,'r') as file:
                     data = file.read()
-                self.names = re.findall(r"(>GM\.5\.0\.\S+)", data)
-                self.synonames = re.findall(r"(#GM\.5\.0\.\S+)", data)
-                letter_probs = re.findall(r"(>GM.*\n((?:[ \t]*\d*\.?\d+[eE]?-?\d*[ \t]+\d*\.?\d+[eE]?-?\d*[ \t]+\d*\.?\d+[eE]?-?\d*[ \t]+\d*\.?\d+[eE]?-?\d*[ \t]*\n)+))", data)
-                assert len(letter_probs) == len(self.names)
-                self.nmotifs = len(self.names)
+#                self.names = re.findall(r"(>GM\.5\.0\.\S+)", data)
+#                self.synonames = re.findall(r"(#GM\.5\.0\.\S+)", data)
+#                letter_probs = re.findall(r"(>GM.*\n((?:[ \t]*\d*\.?\d+[eE]?-?\d*[ \t]+\d*\.?\d+[eE]?-?\d*[ \t]+\d*\.?\d+[eE]?-?\d*[ \t]+\d*\.?\d+[eE]?-?\d*[ \t]*\n)+))", data)
+#                assert len(letter_probs) == len(self.names)
+#                self.nmotifs = len(self.names)
+                self.names = re.findall(r"^>(\S+)\s*$", data, flags=re.MULTILINE)
+                letter_probs = re.findall(
+                    r"(^>(\S+)\s*\n((?:(?:\s*\d*\.?\d+(?:[eE][+-]?\d+)?)(?:\s+\d*\.?\d+(?:[eE][+-]?\d+)?){3}\s*\n)+))",
+                    data,
+                    flags=re.MULTILINE
+                )
+                self.nmotifs = len(letter_probs)
+                assert self.nmotifs == len(self.names)
                 out_channels = self.nmotifs * 2
                 in_channels = 4
                 matrices = []
                 length = 0
                 for i in range(len(letter_probs)):
                     matrix = letter_probs[i][0].split("\n")
+#                    print(matrix)
                     if len(matrix[-1]) == 0:
                         matrix = matrix[1:-1] #this removes both the first and last row 
                     else:
                         matrix = matrix[1:] #this removes the first row
+#                    print(matrix)
                     matrices.append(np.array([i.split() for i in matrix], dtype=float))
                     if matrices[-1].shape[0] > length:
                         length = matrices[-1].shape[0]
