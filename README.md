@@ -12,4 +12,5 @@ if theere are ref. and alt. sequences around the variant's position (refSeq, alt
 # This makes the prediction on Cadps in mm10 as shown in fig. 2.a in PADIT-seq paper
 python3 MotifScore/MotifScore.py --motif H14CORE_meme_format.meme --seqs HOXD13/seqs/ --method probNorm --mode average --out HOXD13/probNorm_preds/fig2a
 ```
- 
+
+![Alt text](PADIT-probNorm-EGR1-HOXD13.png)
