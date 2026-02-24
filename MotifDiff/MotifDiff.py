@@ -68,6 +68,7 @@ def variantdiff(genome: str = typer.Option(..., help="fasta file for the genome"
                 mode: mode_type = typer.Option(mode_type.max, help="Operation mode for the pooling layer (max/average)"),                 
                 batch: int = typer.Option(128, help="batch size"),
                 out_file: str = typer.Option('output', "--out", help="output directory"),
+                motif_name: str = typer.Option(..., "--motname", help="the name of the motif of interest"),
                 window:int = typer.Option(0, help="window size"), # change this in a way that if it gets a value use that value and if not the default will be kernel size (instead of setting 0 as the default, make it none or not receiving an input as the default)
                 kernel: kernel_type = typer.Option(kernel_type.PWM, help="Choose between PWM (4 dimensional) or TFFM (16 dimensional) (default = PWM).")
                 ):
@@ -109,6 +110,12 @@ def variantdiff(genome: str = typer.Option(..., help="fasta file for the genome"
         else:
             windowsize=window
 
+    names = motif.names
+    print(names)
+#    k=[i for i, m in enumerate(names) if motif_name in m]
+    k = next((i for i, m in enumerate(names) if motif_name in m), None)
+    print(k)
+    print([(i,m) for i, m in enumerate(names) if motif_name in m]) 
 
     print(f"looking on {strand} strand for motif matchs on windowsize={windowsize}")
     segments = vcfData(vcf, batch, genome, windowsize, dinucleotide=(nucleotide=="di"), strand=strand)
@@ -130,13 +137,13 @@ def variantdiff(genome: str = typer.Option(..., help="fasta file for the genome"
         np.save(f"{Path(out_file).parent}/single_snps/for_heatmaps/{Path(out_file).stem}_matref.npy", matref)
         np.save(f"{Path(out_file).parent}/single_snps/for_heatmaps/{Path(out_file).stem}_matalt.npy", matalt)
 
-#        np.save(f"{Path(out_file).parent}/single_snps/for_heatmaps/{Path(out_file).stem}_PPM.npy", np.exp(kernels[2*273])) # EGR1 is 104, HOXD13 is 273
-#        np.save(f"{Path(out_file).parent}/single_snps/for_heatmaps/{Path(out_file).stem}_PWM.npy", kernels[2*273])
+        np.save(f"{Path(out_file).parent}/single_snps/for_heatmaps/{motif_name}_PPM.npy", np.exp(kernels[2*k])) # EGR1 is 104, HOXD13 is 273
+        np.save(f"{Path(out_file).parent}/single_snps/for_heatmaps/{motif_name}_PWM.npy", kernels[2*k])
 
         ref = F.conv1d(matref, kernels)
         alt = F.conv1d(matalt, kernels)
-        np.save(f"{Path(out_file).parent}/single_snps/raw_scores/{Path(out_file).stem}_refscores_raw_{windowsize}.npy", ref[0,2*429,:])
-        np.save(f"{Path(out_file).parent}/single_snps/raw_scores/{Path(out_file).stem}_altscores_raw_{windowsize}.npy", alt[0,2*429,:])
+        np.save(f"{Path(out_file).parent}/single_snps/raw_scores/{Path(out_file).stem}_refscores_raw_{windowsize}.npy", ref[0,2*k,:])
+        np.save(f"{Path(out_file).parent}/single_snps/raw_scores/{Path(out_file).stem}_altscores_raw_{windowsize}.npy", alt[0,2*k,:])
 
         #print('after convolution', ref.shape, ref[0,0:5,:]-alt[0,0:5,:])
         #print("ref shape after conv:", ref.shape)
@@ -165,8 +172,8 @@ def variantdiff(genome: str = typer.Option(..., help="fasta file for the genome"
 
                 ref = np.nan_to_num(ref, nan=0)
                 alt = np.nan_to_num(alt, nan=0)
-                np.save(f"{Path(out_file).parent}/single_snps/normalized_scores/{Path(out_file).stem}_refscores_normalized_{windowsize}.npy", ref[0,429,:])
-                np.save(f"{Path(out_file).parent}/single_snps/normalized_scores/{Path(out_file).stem}_altscores_normalized_{windowsize}.npy", alt[0,429,:])
+                np.save(f"{Path(out_file).parent}/single_snps/normalized_scores/{Path(out_file).stem}_refscores_normalized_{windowsize}.npy", ref[0,k,:])
+                np.save(f"{Path(out_file).parent}/single_snps/normalized_scores/{Path(out_file).stem}_altscores_normalized_{windowsize}.npy", alt[0,k,:])
 
                 _,ref_max_pos = torch.max(torch.tensor(ref[:,:,:windowsize]), dim=2)
                 _,alt_max_pos = torch.max(torch.tensor(alt[:,:,:windowsize]), dim=2)
@@ -225,8 +232,6 @@ def variantdiff(genome: str = typer.Option(..., help="fasta file for the genome"
     
     motif_names = motif.names
 
-#    print([i for i, m in enumerate(motif_names) if "EGR1_" in m]) 
-#    print(len(motif_names))
 
     Path(out_file).parent.mkdir(parents=True, exist_ok=True) #EGR1_adastra/probNorm_preds/single_snps/
     print(f"Writing the results to {out_file}_{nucleotide}_{diff_score}_{mode}_ws{windowsize}")
